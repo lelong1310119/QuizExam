@@ -1,6 +1,10 @@
-﻿using Nest;
+﻿using Microsoft.Identity.Client;
+using Nest;
+using QuizExamOnline.Common;
+using QuizExamOnline.Entities;
 using QuizExamOnline.Entities.Exams;
 using QuizExamOnline.Entities.Questions;
+using QuizExamOnline.Enums;
 using QuizExamOnline.Repositories;
 using QuizExamOnline.Services.Questions;
 
@@ -11,44 +15,55 @@ namespace QuizExamOnline.Services.Exams
         Task<ExamDto> CreateExam(CreateExamDto createExamDto);
         Task<ExamDto> Update(UpdateExamDto updateExamDto);
         Task<bool> Delete(long id);
-        Task<List<ExamDto>> GetAllExam();
+        Task<Paging<ExamDto>> GetAllExam(int page);
         Task<List<ExamDto>> GetExamByUser();
-        Task<List<ExamDto>> Search(string filter);
+        Task<Paging<ExamDto>> Search(string filter, int page);
         Task<ExamDto> GetExamByCode(string code);
         Task<ExamDto> GetExamById(long id);
+        Task<List<ExamDto>> SearchNoPaging(string search);
+        Task<List<ExamDto>> GetAllExamNoPaging();
     }
     public class ExamService : IExamService
     {
-        private readonly IExamRepository _examRepository;
-        private readonly IHistoryExamRepository _historyExamRepository;
-        private readonly IQuestionRepository _questionRepository;
-        private readonly IAnswerQuestionRepository _answerQuestionRepository;
-        private readonly IGeneralRepository _generalRepository;
+        //private readonly IExamRepository _examRepository;
+        //private readonly IHistoryExamRepository _historyExamRepository;
+        //private readonly IQuestionRepository _questionRepository;
+        //private readonly IAnswerQuestionRepository _answerQuestionRepository;
+        //private readonly IGeneralRepository _generalRepository;
+        private readonly IUnitOfWork _UOW;
 
-        public ExamService(IExamRepository examRepository,  IHistoryExamRepository historyExamRepository, IQuestionRepository questionRepository, IAnswerQuestionRepository answerQuestionRepository, IGeneralRepository generalRepository)
+        public ExamService(IUnitOfWork UOW)
         {
-            _examRepository = examRepository;
-            _historyExamRepository = historyExamRepository;
-            _questionRepository = questionRepository;
-            _answerQuestionRepository = answerQuestionRepository;
-            _generalRepository = generalRepository;
+            //_examRepository = examRepository;
+            //_historyExamRepository = historyExamRepository;
+            //_questionRepository = questionRepository;
+            //_answerQuestionRepository = answerQuestionRepository;
+            //_generalRepository = generalRepository;
+            _UOW = UOW;
         }
 
         public async Task<ExamDto> CreateExam(CreateExamDto createExamDto)
         {
+            createExamDto.Code = createExamDto.Code.Trim();
             await ValidateExam(createExamDto);
-            var result = await _examRepository.CreateExam(createExamDto);
-            result.Questions = await _questionRepository.GetQuestionByExam(result.Id);
-            result.TimeExam = await _historyExamRepository.CountByExam(result.Id);
-            foreach (var item in result.Questions)
+            var result = await _UOW.ExamRepository.CreateExam(createExamDto);
+            result.Questions = await _UOW.QuestionRepository.GetQuestionByExam(result.Id);
+            result.TimeExam = await _UOW.HistoryExamRepository.CountByExam(result.Id);
+            if (result.Questions != null)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                foreach (var item in result.Questions)
+                {
+                    item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+                }
             }
             return result;
         }
 
         public async Task<ExamDto> Update(UpdateExamDto updateExamDto)
         {
+            var exam = await _UOW.ExamRepository.GetExamById(updateExamDto.Id);
+            if (exam != null && exam.StatusId != 3) throw new CustomException(ExamErrorEnum.CanNotChange);
+            updateExamDto.Code = updateExamDto.Code.Trim();
             CreateExamDto createExamDto = new CreateExamDto
             {
                 Code = updateExamDto.Code,
@@ -61,32 +76,59 @@ namespace QuizExamOnline.Services.Exams
                 IdQuestions = updateExamDto.IdQuestions
             };
             await ValidateExam(createExamDto);
-            var result = await _examRepository.Update(updateExamDto);
-            if (result == null) throw new ExamException("Exam does not exist");
-            result.Questions = await _questionRepository.GetQuestionByExam(result.Id);
-            result.TimeExam = await _historyExamRepository.CountByExam(result.Id);
-            foreach (var item in  result.Questions)
+            var result = await _UOW.ExamRepository.Update(updateExamDto);
+            if (result == null) throw new CustomException(ExamErrorEnum.ExamDoesNotExist);
+            result.Questions = await _UOW.QuestionRepository.GetQuestionByExam(result.Id);
+            result.TimeExam = await _UOW.HistoryExamRepository.CountByExam(result.Id);
+            if (result.Questions != null)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                foreach (var item in result.Questions)
+                {
+                    item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+                }
             }
             return result;
         }
+
         public async Task<bool> Delete(long id)
         {
-            var result = await _examRepository.GetExamById(id);
-            if (result != null && result.StatusId != 3) throw new ExamException("Can not be changed");
-            return await _examRepository.Delete(id);
+            var result = await _UOW.ExamRepository.GetExamById(id);
+            if (result != null && result.StatusId != 3) throw new CustomException(ExamErrorEnum.CanNotChange);
+            return await _UOW.ExamRepository.Delete(id);
         }
-        public async Task<List<ExamDto>> GetAllExam()
+        public async Task<Paging<ExamDto>> GetAllExam(int page)
         {
-            var result = await _examRepository.GetAllExam();
-            foreach(var item in result)
+            var result = await _UOW.ExamRepository.GetAllExam(page);
+            //if (page > result.TotalPage) throw new CustomException(ExamErrorEnum.InvalidPage);
+            foreach (var item in result.Data)
             {
-                item.Questions = await _questionRepository.GetQuestionByExam(item.Id);
-                item.TimeExam = await _historyExamRepository.CountByExam(item.Id);
-                foreach (var item1 in item.Questions)
+                item.Questions = await _UOW.QuestionRepository.GetQuestionByExam(item.Id);
+                item.TimeExam = await _UOW.HistoryExamRepository.CountByExam(item.Id);
+                if (item.Questions != null)
                 {
-                    item1.Answers = await _answerQuestionRepository.getListByQuestion(item1.Id);
+                    foreach (var item1 in item.Questions)
+                    {
+                        item1.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item1.Id);
+                    }
+                }
+            }
+            return result;
+        }
+
+        public async Task<List<ExamDto>> GetAllExamNoPaging()
+        {
+            var result = await _UOW.ExamRepository.GetAllExamNoPaging();
+            //if (page > result.TotalPage) throw new CustomException(ExamErrorEnum.InvalidPage);
+            foreach (var item in result)
+            {
+                item.Questions = await _UOW.QuestionRepository.GetQuestionByExam(item.Id);
+                item.TimeExam = await _UOW.HistoryExamRepository.CountByExam(item.Id);
+                if (item.Questions != null)
+                {
+                    foreach (var item1 in item.Questions)
+                    {
+                        item1.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item1.Id);
+                    }
                 }
             }
             return result;
@@ -94,99 +136,142 @@ namespace QuizExamOnline.Services.Exams
 
         public async Task<List<ExamDto>> GetExamByUser()
         {
-            var result =  await _examRepository.GetExamByUser();
+            var result =  await _UOW.ExamRepository.GetExamByUser();
             foreach (var item in result)
             {
-                item.Questions = await _questionRepository.GetQuestionByExam(item.Id);
-                item.TimeExam = await _historyExamRepository.CountByExam(item.Id);
-                foreach (var item1 in item.Questions)
+                item.Questions = await _UOW.QuestionRepository.GetQuestionByExam(item.Id);
+                item.TimeExam = await _UOW.HistoryExamRepository.CountByExam(item.Id);
+                if (item.Questions != null)
                 {
-                    item1.Answers = await _answerQuestionRepository.getListByQuestion(item1.Id);
-                }
-            }
-            return result;
-        }
-        public async Task<List<ExamDto>> Search(string filter)
-        {
-            var result = await _examRepository.Search(filter);
-            if (result.Count > 0)
-            {
-                foreach (var item in result)
-                {
-                    item.Questions = await _questionRepository.GetQuestionByExam(item.Id);
-                    item.TimeExam = await _historyExamRepository.CountByExam(item.Id);
                     foreach (var item1 in item.Questions)
                     {
-                        item1.Answers = await _answerQuestionRepository.getListByQuestion(item1.Id);
+                        item1.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item1.Id);
                     }
                 }
             }
             return result;
         }
 
-        public async Task<ExamDto> GetExamByCode(string code)
+        public async Task<Paging<ExamDto>> Search(string search, int page)
         {
-            var result = await _examRepository.GetExamByCode(code);
-            if (result == null) throw new ExamException("Not found exam");
-            result.Questions = await _questionRepository.GetQuestionByExam(result.Id);
-            result.TimeExam = await _historyExamRepository.CountByExam(result.Id);
-            foreach (var item in result.Questions)
+            string filter = search.Trim();
+            var result = await _UOW.ExamRepository.Search(filter, page);
+            //if (page > result.TotalPage) throw new CustomException(ExamErrorEnum.InvalidPage);
+            if (result.Data.Count > 0)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                foreach (var item in result.Data)
+                {
+                    item.Questions = await _UOW.QuestionRepository.GetQuestionByExam(item.Id);
+                    item.TimeExam = await _UOW.HistoryExamRepository.CountByExam(item.Id);
+                    if (item.Questions != null)
+                    {
+                        foreach (var item1 in item.Questions)
+                        {
+                            item1.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item1.Id);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        public async Task<List<ExamDto>> SearchNoPaging(string search)
+        {
+            string filter = search.Trim();
+            var result = await _UOW.ExamRepository.SearchNoPaging(filter);
+            //if (page > result.TotalPage) throw new CustomException(ExamErrorEnum.InvalidPage);
+            if (result.Count > 0)
+            {
+                foreach (var item in result)
+                {
+                    item.Questions = await _UOW.QuestionRepository.GetQuestionByExam(item.Id);
+                    item.TimeExam = await _UOW.HistoryExamRepository.CountByExam(item.Id);
+                    if (item.Questions != null)
+                    {
+                        foreach (var item1 in item.Questions)
+                        {
+                            item1.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item1.Id);
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        public async Task<ExamDto> GetExamByCode(string _code)
+        {
+            string code = _code.Trim();
+            var result = await _UOW.ExamRepository.GetExamByCode(code);
+            if (result == null) throw new CustomException(ExamErrorEnum.NotFoundExam);
+            result.Questions = await _UOW.QuestionRepository.GetQuestionByExam(result.Id);
+            result.TimeExam = await _UOW.HistoryExamRepository.CountByExam(result.Id);
+            if (result.Questions != null)
+            {
+                foreach (var item in result.Questions)
+                {
+                    item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+                }
             }
             return result;
         }
 
         public async Task<ExamDto> GetExamById(long id)
         {
-            var result = await _examRepository.GetExamById(id);
-            if (result == null) throw new ExamException("Not found exam");
-            result.Questions = await _questionRepository.GetQuestionByExam(result.Id);
-            result.TimeExam = await _historyExamRepository.CountByExam(result.Id);
-            foreach (var item in result.Questions)
+            var result = await _UOW.ExamRepository.GetExamById(id);
+            if (result == null) throw new CustomException(ExamErrorEnum.NotFoundExam);
+            result.Questions = await _UOW.QuestionRepository.GetQuestionByExam(result.Id);
+            result.TimeExam = await _UOW.HistoryExamRepository.CountByExam(result.Id);
+            if (result.Questions != null)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                foreach (var item in result.Questions)
+                {
+                    item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+                }
             }
             return result;
         }
 
         private async Task ValidateExam(CreateExamDto createExamDto)
         {
-            if (!await _generalRepository.CheckGrade(createExamDto.GradeId))
+            if (!await _UOW.GeneralRepository.CheckGrade(createExamDto.GradeId))
             {
-                throw new ExamException("Grade does not exist");
+                throw new CustomException(GeneralEnum.GradeDoesNotExist);
             }
-            if (!await _generalRepository.CheckLevel(createExamDto.LevelId))
+            if (!await _UOW.GeneralRepository.CheckLevel(createExamDto.LevelId))
             {
-                throw new ExamException("Level does not exist");
+                throw new CustomException(GeneralEnum.LevelDoesNotExist);
             }
-            if (!await _generalRepository.CheckStatus(createExamDto.StatusId))
+            if (!await _UOW.GeneralRepository.CheckStatus(createExamDto.StatusId))
             {
-                throw new ExamException("Status does not exist");
+                throw new CustomException(GeneralEnum.StatusDoesNotExist);
             }
-            if (!await _generalRepository.CheckSubject(createExamDto.GradeId))
+            if (!await _UOW.GeneralRepository.CheckSubject(createExamDto.GradeId))
             {
-                throw new ExamException("Subject does not exist");
+                throw new CustomException(GeneralEnum.SubjectDoesNotExist);
             }
-            if (string.IsNullOrWhiteSpace(createExamDto.Name))
+            if (createExamDto.Name == null || createExamDto.Code.Trim() == "")
             {
-                throw new ExamException("Empty Name");
+                throw new CustomException(ExamErrorEnum.NameEmpty);
             }
-            if (string.IsNullOrWhiteSpace(createExamDto.Code))
+            if (string.IsNullOrWhiteSpace(createExamDto.Code) || createExamDto.Code.Contains(" "))
             {
-                throw new ExamException("Empty Code");
+                throw new CustomException(ExamErrorEnum.InvalidCode);
+            }
+            if (await _UOW.ExamRepository.GetExamByCode(createExamDto.Code) != null)
+            {
+                throw new CustomException(ExamErrorEnum.CodeAlreadyExists);
             }
             if (createExamDto.IdQuestions.Count() == 0)
             {
-                throw new ExamException("Empty Question");
+                throw new CustomException(ExamErrorEnum.QuestionEmpty);
             }
-            if (createExamDto.Time < 0)
+            if (createExamDto.Time <= 0)
             {
-                throw new ExamException("Invalid Time");
+                throw new CustomException(ExamErrorEnum.InvalidTime);
             }
             foreach (var item in createExamDto.IdQuestions)
             {
-                if (!await _questionRepository.CheckQuestion(item)) new ExamException("Question does not exist");
+                if (!await _UOW.QuestionRepository.CheckQuestion(item)) throw new CustomException(ExamErrorEnum.QuestionDoesNotExits);
             }
         }
     }

@@ -1,77 +1,49 @@
-﻿//using QuizExamOnline.Models;
+﻿using AutoMapper;
+using QuizExamOnline.Common;
+using QuizExamOnline.Models;
 
-//namespace QuizExamOnline.Repositories
-//{
-//    public interface IUnitOfWork : IServiceScope, IDisposable
-//    {
-//        Task Begin();
-//        Task Commit();
-//        Task Rollback();
+namespace QuizExamOnline.Repositories
+{
+    public interface IUnitOfWork : IDisposable
+    {
+        void Save();
 
-//        IAppUserRepository AppUserRepository { get; }
-//        IGeneralRepository GeneralRepository { get; }
-//        IQuestionRepository QuestionRepository { get; }
-//        IAnswerQuestionRepository AnswerQuestionRepository { get; }
-//        IExamRepository ExamRepository { get; }
-//        IHistoryExamRepository HistoryExamRepository { get; }
-        
-//    }
+        IAppUserRepository AppUserRepository { get; }
+        IQuestionRepository QuestionRepository { get; }
+        IExamRepository ExamRepository { get; }
+        IAnswerQuestionRepository AnswerQuestionRepository { get; }
+        IHistoryExamRepository HistoryExamRepository { get; }
+        IGeneralRepository GeneralRepository { get; }
+    }
 
-//    public class UnitOfWork : IUnitOfWork
-//    {
-//        private DataContext DataContext;
+    public class UnitOfWork : IUnitOfWork
+    {
+        private readonly DataContext _context;
 
-//        public IAppUserRepository AppUserRepository { get; private set; }
-//        public IGeneralRepository GeneralRepository { get; private set; }
-//        public IQuestionRepository QuestionRepository { get; private set; }
-//        public IAnswerQuestionRepository AnswerQuestionRepository { get; private set; }
-//        public IExamRepository ExamRepository { get; private set; }
-//        public IHistoryExamRepository HistoryExamRepository { get; private set; }
+        public IAppUserRepository AppUserRepository { get; private set; }
+        public IQuestionRepository QuestionRepository { get; private set; }
+        public IExamRepository ExamRepository { get; private set; }
+        public IAnswerQuestionRepository AnswerQuestionRepository { get; private set; }
+        public IHistoryExamRepository HistoryExamRepository { get; private set; }
+        public IGeneralRepository GeneralRepository { get; private set; }
+        public UnitOfWork(DataContext dataContext, IMapper mapper, ICurrentContext currentContext) {
+            _context = dataContext;
+            AppUserRepository = new AppUserRepository(dataContext, mapper, currentContext);
+            QuestionRepository = new QuestionRepository(dataContext, mapper, currentContext);
+            ExamRepository = new ExamRepository(dataContext, mapper, currentContext);
+            AnswerQuestionRepository = new AnswerQuestionRepository(dataContext, mapper);
+            HistoryExamRepository = new HistoryExamRepository(dataContext, mapper, currentContext);
+            GeneralRepository = new GeneralRepository(dataContext, mapper);
+        }
 
-//        public UnitOfWork(DataContext DataContext, IRedisS RedisStore, IConfiguration Configuration)
-//        {
-//            this.DataContext = DataContext;
-//            AppUserRepository = new AppUserRepository(DataContext)
-            
-//        }
-//        public async Task Begin()
-//        {
-//            return;
-//            await DataContext.Database.BeginTransactionAsync();
-//        }
+        public void Save()
+        {
+            _context.SaveChanges();
+        }
 
-//        public Task Commit()
-//        {
-//            //DataContext.Database.CommitTransaction();
-//            return Task.CompletedTask;
-//        }
-
-//        public Task Rollback()
-//        {
-//            //DataContext.Database.RollbackTransaction();
-//            return Task.CompletedTask;
-//        }
-
-//        public void Dispose()
-//        {
-//            this.Dispose(true);
-//            GC.SuppressFinalize(this);
-//        }
-
-//        protected virtual void Dispose(bool disposing)
-//        {
-//            if (!disposing)
-//            {
-//                return;
-//            }
-
-//            if (this.DataContext == null)
-//            {
-//                return;
-//            }
-
-//            this.DataContext.Dispose();
-//            this.DataContext = null;
-//        }
-//    }
-//}
+        public void Dispose()
+        {
+            _context.Dispose();
+        }
+    }
+}

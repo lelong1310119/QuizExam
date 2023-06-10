@@ -32,7 +32,7 @@ namespace QuizExamOnline.Controllers
                 return new OkObjectResult(histories);
             } catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -47,7 +47,7 @@ namespace QuizExamOnline.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
     }

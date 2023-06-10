@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver.Core.Authentication;
 using Nest;
+using QuizExamOnline.Common;
 using QuizExamOnline.Entities.AppUsers;
 using QuizExamOnline.Models;
 using QuizExamOnline.Repositories;
@@ -34,20 +35,20 @@ namespace QuizExamOnline.Controllers
         public async Task<ActionResult<AppUserDto>> Register([FromBody] CreateAppUserDto createAppUserDto)
         {
             if (!ModelState.IsValid)
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse("Invalid Input"));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, "Invalid Input", "Dữ liệu truyền vào không hợp lệ", "BadRequest"));
             try
             {
                 var appUser = await _appUserService.CreateUser(createAppUserDto);
                 //return new OkObjectResult(new ResponseUser<AppUserDto>("Success", appUser));
                 return StatusCode(StatusCodes.Status201Created, new ResponseUser<AppUserDto>("Success", appUser));
 
-            } catch(AppUserExeption ex)
+            } catch(CustomException ex)
             {
-                return StatusCode(StatusCodes.Status422UnprocessableEntity, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status422UnprocessableEntity, new ResponseException(422, ex.Message, ex.Detail, "UnprocessableEntity"));
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -71,20 +72,20 @@ namespace QuizExamOnline.Controllers
         public async Task<ActionResult<AppUserDto>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
         {
             if (!ModelState.IsValid)
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse("Invalid Input"));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, "Invalid Input", "Dữ liệu truyền vào không hợp lệ", "BadRequest"));
             try
             {
                 var appuser = await _appUserService.RefreshToken(refreshTokenDto.RefreshToken);
                 //return new OkObjectResult(new ResponseUser<AppUserDto>("Success", appuser));
                 return StatusCode(StatusCodes.Status200OK, new ResponseUser<AppUserDto>("Success", appuser));
             }
-            catch (AppUserExeption ex)
+            catch (CustomException ex)
             {
-                return StatusCode(StatusCodes.Status401Unauthorized, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status401Unauthorized, new ResponseException(401, ex.Message, ex.Detail, "Unauthorized"));
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -94,19 +95,19 @@ namespace QuizExamOnline.Controllers
         public async Task<ActionResult<AppUserDto>> Login([FromBody] UserLoginDto userlogin)
         {
             if (!ModelState.IsValid)
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse("Invalid Input"));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, "Invalid Input", "Dữ liệu truyền vào không hợp lệ", "BadRequest"));
             try
             {
                 var appuser = await _appUserService.Login(userlogin);
                 return StatusCode(StatusCodes.Status200OK, new ResponseUser<AppUserDto>("Success", appuser));
             }
-            catch (AppUserExeption ex)
+            catch (CustomException ex)
             {
-                return StatusCode(StatusCodes.Status401Unauthorized, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status401Unauthorized, new ResponseException(401, ex.Message, ex.Detail, "Unauthorized"));
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status400BadRequest, new BaseResponse(ex.Message));
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 

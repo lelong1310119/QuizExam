@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using QuizExamOnline.Entities;
+using QuizExamOnline.Responses;
 using QuizExamOnline.Services;
 
 namespace QuizExamOnline.Controllers
@@ -22,11 +23,11 @@ namespace QuizExamOnline.Controllers
             {
                 var result = await _generalService.getListGrade();
                 return Ok(result);
-            } catch
-            {
-                return BadRequest();
             }
-             
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
+            }
         }
 
         [HttpGet("statuses")]
@@ -37,9 +38,9 @@ namespace QuizExamOnline.Controllers
                 var result = await _generalService.getListStatus();
                 return Ok(result);
             }
-            catch
+            catch (Exception ex)
             {
-                return BadRequest();
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -51,9 +52,9 @@ namespace QuizExamOnline.Controllers
                 var result = await _generalService.getListLevel();
                 return Ok(result);
             }
-            catch
+            catch (Exception ex)
             {
-                return BadRequest();
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -65,9 +66,9 @@ namespace QuizExamOnline.Controllers
                 var result = await _generalService.getListQuestionType();
                 return Ok(result);
             }
-            catch
+            catch (Exception ex)
             {
-                return BadRequest();
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -79,9 +80,9 @@ namespace QuizExamOnline.Controllers
                 var result = await _generalService.getListQuestionGroup();
                 return Ok(result);
             }
-            catch
+            catch (Exception ex)
             {
-                return BadRequest();
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
 
@@ -93,9 +94,9 @@ namespace QuizExamOnline.Controllers
                 var result = await _generalService.getListSubject();
                 return Ok(result);
             }
-            catch
+            catch (Exception ex)
             {
-                return BadRequest();
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseException(400, ex.Message, "", "BadRequest"));
             }
         }
     }

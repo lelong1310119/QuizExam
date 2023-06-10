@@ -5,6 +5,7 @@ using Nest;
 using NuGet.Protocol;
 using QuizExamOnline.Common;
 using QuizExamOnline.Entities.AppUsers;
+using QuizExamOnline.Enums;
 using QuizExamOnline.Repositories;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -24,50 +25,56 @@ namespace QuizExamOnline.Services.AppUsers
     }
     public class AppUserService : IAppUserService
     {
-        private readonly IAppUserRepository _appUserRepository;
+        //private readonly IAppUserRepository _appUserRepository;
         private readonly IConfiguration _configuration;
         private readonly ICurrentContext _currentContext;
+        private readonly IUnitOfWork _UOW;
 
-        public AppUserService(IAppUserRepository appUserRepository, IConfiguration configuration, ICurrentContext currentContext) { 
-            _appUserRepository = appUserRepository;
+        public AppUserService(IConfiguration configuration, ICurrentContext currentContext, IUnitOfWork unitOfWork) { 
+            //_appUserRepository = appUserRepository;
             _configuration = configuration;
             _currentContext = currentContext;
+            _UOW = unitOfWork;
         }
 
         public async Task<AppUserDto> CreateUser(CreateAppUserDto createAppUserDto)
         {
-            if (await _appUserRepository.CheckEmail(createAppUserDto.Email)) throw new AppUserExeption("Email already exists");
-            if (!ValidateEmail(createAppUserDto.Email)) throw new AppUserExeption("Invalid Email");
-            if (!ValidatePassword(createAppUserDto.Password)) throw new AppUserExeption("Invalid Password");
-            if (!ValidateDisplayName(createAppUserDto.DisplayName)) throw new AppUserExeption("Invalid Name");
+            if (createAppUserDto.Email.Trim() == "") throw new CustomException(UserErrorEnum.EmailEmpty);
+            if (await _UOW.AppUserRepository.CheckEmail(createAppUserDto.Email)) throw new CustomException(UserErrorEnum.EmailAlreadyExists);
+            if (!ValidateEmail(createAppUserDto.Email)) throw new CustomException(UserErrorEnum.InvalidEmail);
+            if (createAppUserDto.Password.Trim() == "") throw new CustomException(UserErrorEnum.PasswordEmpty);
+            if (!ValidatePassword(createAppUserDto.Password)) throw new CustomException(UserErrorEnum.InvalidPassword);
+            if (createAppUserDto.DisplayName.Trim() == "") throw new CustomException(UserErrorEnum.DisplaynameEmpty);
+            if (!ValidateDisplayName(createAppUserDto.DisplayName)) throw new CustomException(UserErrorEnum.InvalidDisplayname);
 
             createAppUserDto.Password = HashPassword(createAppUserDto.Password);
-            var appuser = await _appUserRepository.Create(createAppUserDto);
+            var appuser = await _UOW.AppUserRepository.Create(createAppUserDto);
             appuser.Token = CreateToken(appuser);
             appuser.RefreshToken = CreateRefreshToken();
-            await _appUserRepository.UpdateToken(appuser.Id, appuser.RefreshToken);
+            await _UOW.AppUserRepository.UpdateToken(appuser.Id, appuser.RefreshToken);
             _currentContext.UserId = appuser.Id;
             return appuser;
         }
 
         public async Task<AppUserDto> Login(UserLoginDto userlogin)
         {
-            if (!await _appUserRepository.CheckEmail(userlogin.Email)) throw new AppUserExeption("Email does noet exist");
-            var appuser = await _appUserRepository.Login(userlogin);
-            if (appuser == null) throw new AppUserExeption("Incorrect Password");
+            if (!await _UOW.AppUserRepository.CheckEmail(userlogin.Email)) throw new CustomException(UserErrorEnum.EmailDoesNotExist);
+            var appuser = await _UOW.AppUserRepository.Login(userlogin);
+            if (appuser == null) throw new CustomException(UserErrorEnum.IncorrectPassword);
 
             appuser.Token = CreateToken(appuser);
             appuser.RefreshToken = CreateRefreshToken();
-            await _appUserRepository.UpdateToken(appuser.Id, appuser.RefreshToken);
+            await _UOW.AppUserRepository.UpdateToken(appuser.Id, appuser.RefreshToken);
             _currentContext.UserId = appuser.Id;
             return appuser;
         }
 
         public async Task<AppUserDto> RefreshToken(string refreshToken)
         {
-            if (!Validate(refreshToken)) throw new AppUserExeption("Invalid RefreshToken");
-            var appuser = await _appUserRepository.GetUserByRefreshToken(refreshToken);
-            if (appuser == null) throw new AppUserExeption("Incorrect RefreshToken");
+            if (refreshToken.Trim() == "") throw new CustomException(UserErrorEnum.RefreshTokenEmtpy);
+            if (!Validate(refreshToken)) throw new CustomException(UserErrorEnum.InvalidRefreshToken);
+            var appuser = await _UOW.AppUserRepository.GetUserByRefreshToken(refreshToken);
+            if (appuser == null) throw new CustomException(UserErrorEnum.IncorrectRefreshToken);
 
             appuser.Token = CreateToken(appuser);
             _currentContext.UserId = appuser.Id;
@@ -76,7 +83,7 @@ namespace QuizExamOnline.Services.AppUsers
         
         public async Task<AppUserDto> Get()
         {
-            var result = await _appUserRepository.Get();
+            var result = await _UOW.AppUserRepository.Get();
             return result;
         }
 

@@ -2,10 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Nest;
 using QuizExamOnline.Common;
+using QuizExamOnline.Entities;
 using QuizExamOnline.Entities.AnswerQuestions;
 using QuizExamOnline.Entities.Exams;
 using QuizExamOnline.Entities.Questions;
 using QuizExamOnline.Models;
+using System.Drawing.Printing;
 
 namespace QuizExamOnline.Repositories
 {
@@ -14,13 +16,15 @@ namespace QuizExamOnline.Repositories
         Task<ExamDto> CreateExam(CreateExamDto createExamDto);
         Task<ExamDto> Update(UpdateExamDto updateExamDto);
         Task<bool> Delete(long id);
-        Task<List<ExamDto>> GetAllExam();
+        Task<Paging<ExamDto>> GetAllExam(int page);
         Task<List<ExamDto>> GetExamByUser();
         //Task<List<QuestionDto>> GetQuestionByExam(long id);
-        Task<List<ExamDto>> Search(string filter);
+        Task<Paging<ExamDto>> Search(string filter, int page);
         Task<ExamDto> GetExamByCode(string code);
         Task<ExamDto> GetExamById(long id);
         Task<bool> CheckExamQuestion(long idExam, long idQuestion);
+        Task<List<ExamDto>> GetAllExamNoPaging();
+        Task<List<ExamDto>> SearchNoPaging(string filter);
     }
 
     public class ExamRepository : IExamRepository
@@ -106,19 +110,59 @@ namespace QuizExamOnline.Repositories
             return _mapper.Map<Exam, ExamDto>(exam);
         }
 
-        public async Task<List<ExamDto>> Search(string filter)
+        public async Task<Paging<ExamDto>> Search(string filter, int page)
+        {
+            int count = await _dataContext.Exams
+                                .Where(x => (x.Name.Contains(filter)) && (x.StatusId == 1))
+                                .CountAsync();
+            var result = await _dataContext.Exams
+                                    .Where(x => (x.Name.Contains(filter)) && (x.StatusId == 1))
+                                    .Skip((page - 1) * 10)
+                                    .Take(10)
+                                    .ToListAsync();
+            int totalPage = (count % 10 == 0) ? (count / 10) : (count / 10 + 1);
+            var exams = _mapper.Map<List<Exam>, List<ExamDto>>(result);
+            Paging<ExamDto> paging = new Paging<ExamDto>
+            {
+                TotalPage = totalPage,
+                Data = exams
+            };
+            return paging;
+        }
+
+        public async Task<List<ExamDto>> SearchNoPaging(string filter)
         {
             var result = await _dataContext.Exams
-                                .Where(x => (x.Name.Contains(filter)) && (x.StatusId == 1))
-                                .ToListAsync();
+                                    .Where(x => (x.Name.Contains(filter)) && (x.StatusId == 1))
+                                    .ToListAsync();
             return _mapper.Map<List<Exam>, List<ExamDto>>(result);
         }
 
-        public async Task<List<ExamDto>> GetAllExam()
+        public async Task<Paging<ExamDto>> GetAllExam(int page)
+        {
+            int count = await _dataContext.Exams
+                                .Where(x => x.StatusId == 1)
+                                .CountAsync();
+            var result = await _dataContext.Exams
+                                    .Where(x => x.StatusId == 1)
+                                    .Skip((page - 1) * 10)
+                                    .Take(10)
+                                    .ToListAsync();
+            int totalPage = (count % 10 == 0) ? (count / 10) : (count / 10 + 1);
+            var exams = _mapper.Map<List<Exam>, List<ExamDto>>(result);
+            Paging<ExamDto> paging = new Paging<ExamDto>
+            {
+                TotalPage = totalPage,
+                Data = exams
+            };
+            return paging;
+        }
+
+        public async Task<List<ExamDto>> GetAllExamNoPaging()
         {
             var result = await _dataContext.Exams
-                            .Where(x => x.StatusId == 1)
-                            .ToListAsync();
+                                    .Where(x => x.StatusId == 1)
+                                    .ToListAsync();
             return _mapper.Map<List<Exam>, List<ExamDto>>(result);
         }
 

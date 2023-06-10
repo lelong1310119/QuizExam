@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using QuizExamOnline.Common;
+using QuizExamOnline.Entities;
 using QuizExamOnline.Entities.AnswerQuestions;
+using QuizExamOnline.Entities.Exams;
 using QuizExamOnline.Entities.Questions;
 using QuizExamOnline.Models;
 
@@ -9,13 +11,16 @@ namespace QuizExamOnline.Repositories
 {
     public interface IQuestionRepository {
         Task<QuestionDto> Create(CreateQuestionDto questionDto);
-        Task<List<QuestionDto>> GetAllQuestions();
+        Task<Paging<QuestionDto>> GetAllQuestions(int page);
         Task<QuestionDto> Update(UpdateQuestionDto questionDto);
         Task<bool> Delete(long id);
         Task<List<QuestionDto>> GetListQuestionsUser();
         Task<List<QuestionDto>> GetQuestionByExam(long id);
         Task<bool> CheckQuestion(long id);
         Task<QuestionDto> GetQuestionById(long id);
+        Task<Paging<QuestionDto>> Search(string filter, int page);
+        Task<List<QuestionDto>> GetAllQuestionsNoPaging();
+        Task<List<QuestionDto>> SearchNoPaging(string filter);
 
     }
     public class QuestionRepository : IQuestionRepository
@@ -53,19 +58,82 @@ namespace QuizExamOnline.Repositories
             return questions;
         }
 
-        public async Task<List<QuestionDto>> GetAllQuestions()
+        public async Task<List<QuestionDto>> GetAllQuestionsNoPaging()
         {
             var result = await _dataContext.Questions
                             .Where(x => (x.StatusId == 1) || (x.StatusId == 2 && x.AppUserId == _currentContext.UserId))
                             .ToListAsync();
             var questions = _mapper.Map<List<Question>, List<QuestionDto>>(result);
-            foreach (var question in questions)
+            return questions;
+        }
+
+        public async Task<Paging<QuestionDto>> GetAllQuestions(int page)
+        {
+            var count = await _dataContext.Questions
+                            .Where(x => (x.StatusId == 1) || (x.StatusId == 2 && x.AppUserId == _currentContext.UserId))
+                            .CountAsync();
+            var result = await _dataContext.Questions
+                            .Where(x => (x.StatusId == 1) || (x.StatusId == 2 && x.AppUserId == _currentContext.UserId))
+                            .Skip((page - 1) * 10)
+                            .Take(10)
+                            .ToListAsync();
+            int totalPage = (count % 10 == 0) ? (count / 10) : (count / 10 + 1);
+            var questions = _mapper.Map<List<Question>, List<QuestionDto>>(result);
+            //foreach (var question in questions)
+            //{
+            //    var answer = await _dataContext.AnswerQuestions
+            //                            .Where(x => x.QuestionId == question.Id)
+            //                            .ToListAsync();
+            //    question.Answers = _mapper.Map<List<AnswerQuestion>, List<AnswerQuestionDto>>(answer);
+            //}
+            Paging<QuestionDto> paging = new Paging<QuestionDto>
             {
-                var answer = await _dataContext.AnswerQuestions
-                                        .Where(x => x.QuestionId == question.Id)
-                                        .ToListAsync();
-                question.Answers = _mapper.Map<List<AnswerQuestion>, List<AnswerQuestionDto>>(answer);
-            }
+                TotalPage = totalPage,
+                Data = questions
+            };
+            return paging;
+        }
+
+        public async Task<Paging<QuestionDto>> Search(string filter, int page)
+        {
+            int count = await _dataContext.Questions
+                                .Where(x => (x.Content.Contains(filter)) && ((x.StatusId == 1) || (x.StatusId == 2 && x.AppUserId == _currentContext.UserId)))
+                                .CountAsync();
+            var result = await _dataContext.Questions
+                                    .Where(x => (x.Content.Contains(filter)) && ((x.StatusId == 1) || (x.StatusId == 2 && x.AppUserId == _currentContext.UserId)))
+                                    .Skip((page - 1) * 10)
+                                    .Take(10)
+                                    .ToListAsync();
+            int totalPage = (count % 10 == 0) ? (count / 10) : (count / 10 + 1);
+            var questions = _mapper.Map<List<Question>, List<QuestionDto>>(result);
+            //foreach (var question in questions)
+            //{
+            //    var answer = await _dataContext.AnswerQuestions
+            //                            .Where(x => x.QuestionId == question.Id)
+            //                            .ToListAsync();
+            //    question.Answers = _mapper.Map<List<AnswerQuestion>, List<AnswerQuestionDto>>(answer);
+            //}
+            Paging<QuestionDto> paging = new Paging<QuestionDto>
+            {
+                TotalPage = totalPage,
+                Data = questions
+            };
+            return paging;
+        }
+
+        public async Task<List<QuestionDto>> SearchNoPaging(string filter)
+        {
+            var result = await _dataContext.Questions
+                                    .Where(x => (x.Content.Contains(filter)) && ((x.StatusId == 1) || (x.StatusId == 2 && x.AppUserId == _currentContext.UserId)))
+                                    .ToListAsync();
+            var questions = _mapper.Map<List<Question>, List<QuestionDto>>(result);
+            //foreach (var question in questions)
+            //{
+            //    var answer = await _dataContext.AnswerQuestions
+            //                            .Where(x => x.QuestionId == question.Id)
+            //                            .ToListAsync();
+            //    question.Answers = _mapper.Map<List<AnswerQuestion>, List<AnswerQuestionDto>>(answer);
+            //}
             return questions;
         }
 

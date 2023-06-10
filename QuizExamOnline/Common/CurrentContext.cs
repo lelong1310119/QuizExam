@@ -5,23 +5,21 @@ namespace QuizExamOnline.Common
     public interface ICurrentContext
     {
         long UserId { get; set; }
-        string UserName { get; set; }
-        int TimeZone { get; set; }
-        string Language { get; set; }
+        string DisplayName { get; set; }
         string Token { get; set; }
-        List<long> RoleIds { get; set; }
-        Dictionary<long, List<FilterPermissionDefinition>> Filters { get; set; }
+        string Action { get; set; }
+        string Message { get; set; }
+        string Detail { get; set; }
     }
 
     public class CurrentContext : ICurrentContext
     {
         public long UserId { get; set; }
-        public string UserName { get; set; }
-        public int TimeZone { get; set; }
-        public string Language { get; set; } = "vi";
+        public string DisplayName { get; set; }
         public string Token { get; set; }
-        public List<long> RoleIds { get; set; }
-        public Dictionary<long, List<FilterPermissionDefinition>> Filters { get; set; }
+        public string Action { get; set; }
+        public string Message { get; set; }
+        public string Detail { get; set; }
     }
 }
 

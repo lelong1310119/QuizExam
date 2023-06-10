@@ -12,8 +12,8 @@ using QuizExamOnline.Models;
 namespace QuizExamOnline.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20230526031030_initial")]
-    partial class initial
+    [Migration("20230602022338_initials")]
+    partial class initials
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -59,9 +59,6 @@ namespace QuizExamOnline.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<DateTime?>("DateRefresh")
                         .HasColumnType("datetime");
 
                     b.Property<string>("DisplayName")
@@ -286,10 +283,10 @@ namespace QuizExamOnline.Migrations
                     b.Property<long>("LevelId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("QuesionTypeId")
+                    b.Property<long>("QuestionGroupId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("QuestionGroupId")
+                    b.Property<long>("QuestionTypeId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("StatusId")
@@ -309,9 +306,9 @@ namespace QuizExamOnline.Migrations
 
                     b.HasIndex("LevelId");
 
-                    b.HasIndex("QuesionTypeId");
-
                     b.HasIndex("QuestionGroupId");
+
+                    b.HasIndex("QuestionTypeId");
 
                     b.HasIndex("StatusId");
 
@@ -404,9 +401,6 @@ namespace QuizExamOnline.Migrations
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
-
-                    b.Property<byte[]>("Avatar")
-                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -554,17 +548,17 @@ namespace QuizExamOnline.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Question_Level");
 
-                    b.HasOne("QuizExamOnline.Models.QuestionType", "QuestionType")
-                        .WithMany("Questions")
-                        .HasForeignKey("QuesionTypeId")
-                        .IsRequired()
-                        .HasConstraintName("FK_Question_QuestionType");
-
                     b.HasOne("QuizExamOnline.Models.QuestionGroup", "QuestionGroup")
                         .WithMany("Questions")
                         .HasForeignKey("QuestionGroupId")
                         .IsRequired()
                         .HasConstraintName("FK_Question_QuestionGroup");
+
+                    b.HasOne("QuizExamOnline.Models.QuestionType", "QuestionType")
+                        .WithMany("Questions")
+                        .HasForeignKey("QuestionTypeId")
+                        .IsRequired()
+                        .HasConstraintName("FK_Question_QuestionType");
 
                     b.HasOne("QuizExamOnline.Models.Status", "Status")
                         .WithMany("Questions")

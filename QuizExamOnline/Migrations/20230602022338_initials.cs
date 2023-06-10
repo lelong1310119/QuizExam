@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace QuizExamOnline.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class initials : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -105,8 +105,7 @@ namespace QuizExamOnline.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
-                    Avatar = table.Column<byte[]>(type: "varbinary(max)", nullable: true)
+                    Name = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -123,7 +122,6 @@ namespace QuizExamOnline.Migrations
                     DisplayName = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
                     Password = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
                     RefreshToken = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
-                    DateRefresh = table.Column<DateTime>(type: "datetime", nullable: true),
                     Image = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
@@ -197,7 +195,7 @@ namespace QuizExamOnline.Migrations
                     LevelId = table.Column<long>(type: "bigint", nullable: false),
                     QuestionGroupId = table.Column<long>(type: "bigint", nullable: false),
                     StatusId = table.Column<long>(type: "bigint", nullable: false),
-                    QuesionTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    QuestionTypeId = table.Column<long>(type: "bigint", nullable: false),
                     AppUserId = table.Column<long>(type: "bigint", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: false)
@@ -230,7 +228,7 @@ namespace QuizExamOnline.Migrations
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Question_QuestionType",
-                        column: x => x.QuesionTypeId,
+                        column: x => x.QuestionTypeId,
                         principalSchema: "ENUM",
                         principalTable: "AppQuestionType",
                         principalColumn: "Id");
@@ -403,14 +401,14 @@ namespace QuizExamOnline.Migrations
                 column: "LevelId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AppQuestion_QuesionTypeId",
-                table: "AppQuestion",
-                column: "QuesionTypeId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_AppQuestion_QuestionGroupId",
                 table: "AppQuestion",
                 column: "QuestionGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AppQuestion_QuestionTypeId",
+                table: "AppQuestion",
+                column: "QuestionTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AppQuestion_StatusId",

@@ -14,35 +14,37 @@ namespace QuizExamOnline.Services
     }
     public class GeneralService : IGeneralService
     {
-        private readonly IGeneralRepository _generalRepository;
-        public GeneralService(IGeneralRepository generalRepository)
+        //private readonly IGeneralRepository _generalRepository;
+        private readonly IUnitOfWork _UOW;
+        public GeneralService(IUnitOfWork unitOfWork)
         {
-            _generalRepository = generalRepository;
+            //_generalRepository = generalRepository;
+            _UOW = unitOfWork;
         }
 
         public async Task<List<EntityEnumDto>> getListGrade()
         {
-            return await _generalRepository.getListGrade();
+            return await _UOW.GeneralRepository.getListGrade();
         }
         public async Task<List<EntityEnumDto>> getListLevel()
         {
-            return await _generalRepository.getListLevel();
+            return await _UOW.GeneralRepository.getListLevel();
         }
         public async Task<List<EntityEnumDto>> getListStatus()
         {
-            return await _generalRepository.getListStatus();
+            return await _UOW.GeneralRepository.getListStatus();
         }
         public async Task<List<EntityEnumDto>> getListQuestionGroup()
         {
-            return await _generalRepository.getListQuestionGroup();
+            return await _UOW.GeneralRepository.getListQuestionGroup();
         }
         public async Task<List<EntityEnumDto>> getListQuestionType()
         {
-            return await _generalRepository.getListQuestionType();
+            return await _UOW.GeneralRepository.getListQuestionType();
         }
         public async Task<List<EntityEnumDto>> getListSubject()
         {
-            return await _generalRepository.getListSubject();
+            return await _UOW.GeneralRepository.getListSubject();
         }
     }
 }

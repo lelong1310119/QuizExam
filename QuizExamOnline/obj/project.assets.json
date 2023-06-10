@@ -13281,11 +13281,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\VS\\Test\\QuizExamOnline\\QuizExamOnline\\QuizExamOnline.csproj",
+      "projectUniqueName": "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj",
       "projectName": "QuizExamOnline",
-      "projectPath": "E:\\VS\\Test\\QuizExamOnline\\QuizExamOnline\\QuizExamOnline.csproj",
+      "projectPath": "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj",
       "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-      "outputPath": "E:\\VS\\Test\\QuizExamOnline\\QuizExamOnline\\obj\\",
+      "outputPath": "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",

@@ -1,7 +1,8 @@
 ﻿using Nest;
+using QuizExamOnline.Common;
 using QuizExamOnline.Entities.Histories;
+using QuizExamOnline.Enums;
 using QuizExamOnline.Repositories;
-using QuizExamOnline.Services.Exams;
 
 namespace QuizExamOnline.Services.ExamHistories
 {
@@ -14,30 +15,33 @@ namespace QuizExamOnline.Services.ExamHistories
 
     public class ExamHistoryService : IExamHistoryService
     {
-        private readonly IHistoryExamRepository _historyExamRepository;
-        private readonly IAppUserRepository _appUserRepository;
-        private readonly IExamRepository _examRepository;
-        private readonly IQuestionRepository _questionRepository;
-        private readonly IAnswerQuestionRepository _answerQuestionRepository;
+        //private readonly IHistoryExamRepository _historyExamRepository;
+        //private readonly IAppUserRepository _appUserRepository;
+        //private readonly IExamRepository _examRepository;
+        //private readonly IQuestionRepository _questionRepository;
+        //private readonly IAnswerQuestionRepository _answerQuestionRepository;
+        private readonly IUnitOfWork _UOW;
 
-        public ExamHistoryService(IHistoryExamRepository historyExamRepository, IAppUserRepository appUserRepository, IExamRepository examRepository, IQuestionRepository questionRepository, IAnswerQuestionRepository answerQuestionRepository)
+        public ExamHistoryService(IUnitOfWork unitOfWork)
         {
-            _historyExamRepository = historyExamRepository;
-            _appUserRepository = appUserRepository;
-            _examRepository = examRepository;
-            _questionRepository = questionRepository;
-            _answerQuestionRepository = answerQuestionRepository;
+            //_historyExamRepository = historyExamRepository;
+            //_appUserRepository = appUserRepository;
+            //_examRepository = examRepository;
+            //_questionRepository = questionRepository;
+            //_answerQuestionRepository = answerQuestionRepository;
+            _UOW = unitOfWork;
         }
 
         
         public async Task<List<ExamHistoryDto>> GetHistoryByExam(long id)
         {
-            var result = await _historyExamRepository.GetHistoryByExam(id);
+            var result = await _UOW.HistoryExamRepository.GetHistoryByExam(id);
             if (result.Count > 0)
             {
                 foreach (var item in result)
                 {
-                    item.AppUser = await _appUserRepository.GetById(item.AppUserId);
+                    item.AppUser = await _UOW.AppUserRepository.GetById(item.AppUserId);
+                    item.AppUser.RefreshToken = null;
                 }
             }
             return result;
@@ -45,12 +49,12 @@ namespace QuizExamOnline.Services.ExamHistories
 
         public async Task<List<MyHistoryDto>> GetMyHistory()
         {
-            var result = await _historyExamRepository.GetMyHistory();
+            var result = await _UOW.HistoryExamRepository.GetMyHistory();
             if (result.Count > 0)
             {
                 foreach (var item in result)
                 {
-                    var exam = await _examRepository.GetExamById(item.ExamId);
+                    var exam = await _UOW.ExamRepository.GetExamById(item.ExamId);
                     item.NameExam = exam.Name;
                 }
             }
@@ -59,14 +63,14 @@ namespace QuizExamOnline.Services.ExamHistories
 
         public async Task<FinishExamDto> CompleteExam(CompleteExamDto completeExamDto)
         {
-            var result = await _examRepository.GetExamById(completeExamDto.Id);
-            if (result == null) throw new ExamException("Not fount exam");
-            result.Questions = await _questionRepository.GetQuestionByExam(result.Id);
+            var result = await _UOW.ExamRepository.GetExamById(completeExamDto.Id);
+            if (result == null) throw new CustomException(ExamErrorEnum.ExamDoesNotExist);
+            result.Questions = await _UOW.QuestionRepository.GetQuestionByExam(result.Id);
             int count = 0;
             double TotalRight = 0;
             foreach (var item in result.Questions)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
                 count++;    
             }
 
@@ -91,7 +95,7 @@ namespace QuizExamOnline.Services.ExamHistories
                 QuestionRight = exam.QuestionRight,
                 ToTalScore = exam.ToTalScore,
             };
-            var myhistory = await _historyExamRepository.Create(examhistory);
+            var myhistory = await _UOW.HistoryExamRepository.Create(examhistory);
             exam.CreateAt = myhistory.CreateAt;
             return exam;
             
@@ -99,27 +103,27 @@ namespace QuizExamOnline.Services.ExamHistories
 
         public async Task<double> CheckAnswer(long idExam, long idQuestion, List<long> idAnswers)
         {
-            var check = await _examRepository.CheckExamQuestion(idExam, idQuestion);
-            var question = await _questionRepository.GetQuestionById(idQuestion);
-            if (question == null || check == false) throw new ExamException("Invalid Question");
+            var check = await _UOW.ExamRepository.CheckExamQuestion(idExam, idQuestion);
+            var question = await _UOW.QuestionRepository.GetQuestionById(idQuestion);
+            if (question == null || check == false) throw new CustomException(ExamErrorEnum.QuestionDoesNotMapExam);
 
             if (question.QuestionTypeId == 1)
             {
-                if (idAnswers.Count > 1) throw new ExamException("Invalid Question");
+                if (idAnswers.Count > 1) throw new CustomException(ExamErrorEnum.InvalidQuestion);
                 if (idAnswers.Count == 0) return 0;
-                var checkAnswer = await _answerQuestionRepository.Check(idAnswers[0]);
+                if (!await _UOW.AnswerQuestionRepository.CheckAnswerQuestion(question.Id, idAnswers[0])) throw new CustomException(ExamErrorEnum.AnswerDoesNotMapQuestion);
+                var checkAnswer = await _UOW.AnswerQuestionRepository.Check(idAnswers[0]);
                 if (checkAnswer) return 1;
                 return 0;
             } else
             {
-                if (idAnswers.Count < 2) throw new ExamException("Invalid Question");
-                var correctAnswer = await _answerQuestionRepository.CountAnswerCorrect(idQuestion);
+                var correctAnswer = await _UOW.AnswerQuestionRepository.CountAnswerCorrect(idQuestion);
                 double score = (double)1.0 / correctAnswer;
                 double total = 0;
                 foreach (var item in idAnswers)
                 {
-                    if (!await _answerQuestionRepository.CheckAnswerQuestion(idQuestion, item)) throw new ExamException("Invalid Question");
-                    var checkAnswer = await _answerQuestionRepository.Check(item);
+                    if (!await _UOW.AnswerQuestionRepository.CheckAnswerQuestion(idQuestion, item)) throw new CustomException(ExamErrorEnum.AnswerDoesNotMapQuestion);
+                    var checkAnswer = await _UOW.AnswerQuestionRepository.Check(item);
                     if (checkAnswer)
                     {
                         total += score;

@@ -10,9 +10,7 @@ using QuizExamOnline.Services.AppUsers;
 using QuizExamOnline.Services.ExamHistories;
 using QuizExamOnline.Services.Exams;
 using QuizExamOnline.Services.Questions;
-using System.Reflection;
 using System.Text;
-using TrueSight.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,26 +24,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = "https://192.168.111.12:5094",
-            ValidAudience = "https://192.168.111.12:5094",
+            ValidIssuer = "https://192.168.111.29:5094",
+            ValidAudience = "https://192.168.111.29:5094",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("4y7XS2AHicSOs2uUJCxwlHWqTJNExW3UDUjMeXi96uLEso1YV4RazqQubpFBdx0zZGtdxBelKURhh0WXxPR0mEJQHk_0U9HeYtqcMManhoP3X2Ge8jgxh6k4C_Gd4UPTc6lkx0Ca5eRE16ciFQ6wmYDnaXC8NbngGqartHccAxE"))
         };
     });
 
 builder.Services.AddDbContext<DataContext>(options =>
-        options.UseSqlServer("Data Source=LAPTOP-TC1PJ34D\\LONG;Initial Catalog=QuizExamOnline;Integrated Security=True;TrustServerCertificate=True;"));
+        options.UseSqlServer("Data Source=LAPTOP-TC1PJ34D\\LONG;Initial Catalog=TestQuizExamOnline;Integrated Security=True;TrustServerCertificate=True;"));
+builder.Services.AddScoped<DbSeeder>();
 builder.Services.AddScoped<IGeneralRepository, GeneralRepository>();
-builder.Services.AddScoped<IGeneralService, GeneralService>();
 builder.Services.AddScoped<IAppUserRepository, AppUserRepository>();
-builder.Services.AddScoped<IAppUserService, AppUserService>();
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<IAnswerQuestionRepository, AnswerQuestionRepository>();
 builder.Services.AddScoped<IExamRepository, ExamRepository>();
 builder.Services.AddScoped<IHistoryExamRepository, HistoryExamRepository>();
+
+builder.Services.AddScoped<IAppUserService, AppUserService>();
+builder.Services.AddScoped<IGeneralService, GeneralService>();
 builder.Services.AddScoped<IExamHistoryService, ExamHistoryService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<IExamService, ExamService>();
+
 builder.Services.AddSingleton<ICurrentContext, CurrentContext>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -67,6 +69,12 @@ app.UseCors(builder => builder
 app.UseAuthentication();
 app.UseHttpsRedirection();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var seeder = services.GetService<DbSeeder>();
+    await DbSeeder.Migrate(services);
+}
 app.UseAuthorization();
 
 app.MapControllers();

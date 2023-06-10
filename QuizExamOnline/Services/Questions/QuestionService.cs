@@ -1,7 +1,11 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Nest;
+using QuizExamOnline.Common;
+using QuizExamOnline.Entities;
 using QuizExamOnline.Entities.AnswerQuestions;
+using QuizExamOnline.Entities.Exams;
 using QuizExamOnline.Entities.Questions;
+using QuizExamOnline.Enums;
 using QuizExamOnline.Repositories;
 
 namespace QuizExamOnline.Services.Questions
@@ -9,28 +13,33 @@ namespace QuizExamOnline.Services.Questions
     public interface IQuestionService
     {
         Task<QuestionDto> Create(CreateQuestionDto questionDto);
-        Task<List<QuestionDto>> GetAllQuestions();
+        Task<Paging<QuestionDto>> GetAllQuestions(int page);
         Task<QuestionDto> Update(UpdateQuestionDto questionDto);
         Task<bool> Delete(long id);
         Task<List<QuestionDto>> GetListQuestionsUser();
         Task<List<QuestionDto>> GetQuestionByExam(long id);
+        Task<Paging<QuestionDto>> Search(string search, int page);
+        Task<List<QuestionDto>> GetAllQuestionsNoPaging();
+        Task<List<QuestionDto>> SearchNoPaging(string search);
     }
     public class QuestionService : IQuestionService
     {
-        private readonly IQuestionRepository _questionRepository;
-        private readonly IAnswerQuestionRepository _answerQuestionRepository;
-        private readonly IGeneralRepository _generalRepository;
-        public QuestionService(IQuestionRepository questionRepository, IAnswerQuestionRepository answerQuestionRepository, IGeneralRepository generalRepository) {
-            _questionRepository = questionRepository;   
-            _answerQuestionRepository = answerQuestionRepository;
-            _generalRepository = generalRepository;
+        //private readonly IQuestionRepository _questionRepository;
+        //private readonly IAnswerQuestionRepository _answerQuestionRepository;
+        //private readonly IGeneralRepository _generalRepository;
+        private readonly IUnitOfWork _UOW;
+        public QuestionService(IUnitOfWork unitOfWork) {
+            //_questionRepository = questionRepository;   
+            //_answerQuestionRepository = answerQuestionRepository;
+            //_generalRepository = generalRepository;
+            _UOW = unitOfWork;
         }
 
         public async Task<QuestionDto> Create(CreateQuestionDto createQuestionDto)
         {
             await ValidateQuestion(createQuestionDto);
-            var result = await _questionRepository.Create(createQuestionDto);
-            result.Answers = await _answerQuestionRepository.BulkInsert(createQuestionDto.CreateAnswerQuestionDtos, result.Id);
+            var result = await _UOW.QuestionRepository.Create(createQuestionDto);
+            result.Answers = await _UOW.AnswerQuestionRepository.BulkInsert(createQuestionDto.CreateAnswerQuestionDtos, result.Id);
             return result;
         }
 
@@ -48,49 +57,86 @@ namespace QuizExamOnline.Services.Questions
             };
 
             await ValidateQuestion(createQuestion);
-            var result = await _questionRepository.Update(updateQuestionDto);
-            if (result == null) throw new QuestionException("Question does not exist");
+            var result = await _UOW.QuestionRepository.Update(updateQuestionDto);
+            if (result == null) throw new CustomException(QuestionErrorEnum.QuestionDoesNotExist);
 
-            await _answerQuestionRepository.Delete(result.Id);
-            result.Answers = await _answerQuestionRepository.BulkInsert(updateQuestionDto.CreateAnswerQuestionDtos, result.Id);
+            await _UOW.AnswerQuestionRepository.Delete(result.Id);
+            result.Answers = await _UOW.AnswerQuestionRepository.BulkInsert(updateQuestionDto.CreateAnswerQuestionDtos, result.Id);
             return result;
         }
 
         public async Task<bool> Delete(long id)
         {
-            var question = await _questionRepository.GetQuestionById(id);
-            if (question == null) throw new QuestionException("Can be not change");
-            await _answerQuestionRepository.Delete(id);
-            return await _questionRepository.Delete(id);
+            var question = await _UOW.QuestionRepository.GetQuestionById(id);
+            if (question == null) throw new CustomException(QuestionErrorEnum.CanNotChange);
+            await _UOW.AnswerQuestionRepository.Delete(id);
+            return await _UOW.QuestionRepository.Delete(id);
         }
 
         public async Task<List<QuestionDto>> GetQuestionByExam(long id)
         {
-            var result = await _questionRepository.GetQuestionByExam(id);
+            var result = await _UOW.QuestionRepository.GetQuestionByExam(id);
             if (result == null) return null;
             foreach(var item in result)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
             }
             return result;
         }
 
         public async Task<List<QuestionDto>> GetListQuestionsUser()
         {
-            var result = await _questionRepository.GetListQuestionsUser();
+            var result = await _UOW.QuestionRepository.GetListQuestionsUser();
             foreach (var item in result)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
             }
             return result;
         }
 
-        public async Task<List<QuestionDto>> GetAllQuestions()
+        public async Task<Paging<QuestionDto>> Search(string search, int page)
         {
-            var result = await _questionRepository.GetAllQuestions();
+            string filter = search.Trim();
+            var result = await _UOW.QuestionRepository.Search(filter, page);
+            //if (page > result.TotalPage) throw new CustomException(ExamErrorEnum.InvalidPage);
+            if (result.Data.Count > 0)
+            {
+                foreach (var item in result.Data)
+                {
+                    item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+                }
+            }
+            return result;
+        }
+
+        public async Task<List<QuestionDto>> SearchNoPaging(string search)
+        {
+            string filter = search.Trim();
+            var result = await _UOW.QuestionRepository.SearchNoPaging(filter);
+            //if (page > result.TotalPage) throw new CustomException(ExamErrorEnum.InvalidPage);
             foreach (var item in result)
             {
-                item.Answers = await _answerQuestionRepository.getListByQuestion(item.Id);
+                item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+            }
+            return result;
+        }
+
+        public async Task<Paging<QuestionDto>> GetAllQuestions(int page)
+        {
+            var result = await _UOW.QuestionRepository.GetAllQuestions(page);
+            foreach (var item in result.Data)
+            {
+                item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
+            }
+            return result;
+        }
+
+        public async Task<List<QuestionDto>> GetAllQuestionsNoPaging()
+        {
+            var result = await _UOW.QuestionRepository.GetAllQuestionsNoPaging();
+            foreach (var item in result)
+            {
+                item.Answers = await _UOW.AnswerQuestionRepository.getListByQuestion(item.Id);
             }
             return result;
         }
@@ -111,41 +157,41 @@ namespace QuizExamOnline.Services.Questions
 
         private async Task ValidateQuestion(CreateQuestionDto createQuestionDto)
         {
-            if (!await _generalRepository.CheckGrade(createQuestionDto.GradeId))
+            if (!await _UOW.GeneralRepository.CheckGrade(createQuestionDto.GradeId))
             {
-                throw new QuestionException("Grade does not exist");
+                throw new CustomException(GeneralEnum.GradeDoesNotExist);
             }
-            if (!await _generalRepository.CheckLevel(createQuestionDto.LevelId))
+            if (!await _UOW.GeneralRepository.CheckLevel(createQuestionDto.LevelId))
             {
-                throw new QuestionException("Level does not exist");
+                throw new CustomException(GeneralEnum.LevelDoesNotExist);
             }
-            if (!await _generalRepository.CheckStatus(createQuestionDto.StatusId))
+            if (!await _UOW.GeneralRepository.CheckStatus(createQuestionDto.StatusId))
             {
-                throw new QuestionException("Status does not exist");
+                throw new CustomException(GeneralEnum.StatusDoesNotExist);
             }
-            if (!await _generalRepository.CheckSubject(createQuestionDto.GradeId))
+            if (!await _UOW.GeneralRepository.CheckSubject(createQuestionDto.GradeId))
             {
-                throw new QuestionException("Subject does not exist");
+                throw new CustomException(GeneralEnum.SubjectDoesNotExist);
             }
-            if (!await _generalRepository.CheckQuestionGroup(createQuestionDto.GradeId))
+            if (!await _UOW.GeneralRepository.CheckQuestionGroup(createQuestionDto.GradeId))
             {
-                throw new QuestionException("QuestionGroup does not exist");
+                throw new CustomException(GeneralEnum.QuestionGroupDoesNotExist);
             }
-            if (!await _generalRepository.CheckQuestionType(createQuestionDto.GradeId))
+            if (!await _UOW.GeneralRepository.CheckQuestionType(createQuestionDto.GradeId))
             {
-                throw new QuestionException("QuestionType does not exist");
+                throw new CustomException(GeneralEnum.QuestionTypeNotExist);
             }
             if (string.IsNullOrWhiteSpace(createQuestionDto.Content))
             {
-                throw new QuestionException("Empty content");
+                throw new CustomException(QuestionErrorEnum.ContentEmpty);
             }
             if (createQuestionDto.CreateAnswerQuestionDtos.Count() == 0)
             {
-                throw new QuestionException("Empty Answer");
+                throw new CustomException(QuestionErrorEnum.AnswerEmpty);
             }
             if (!CheckAnswer(createQuestionDto.CreateAnswerQuestionDtos, createQuestionDto.QuestionTypeId))
             {
-                throw new QuestionException("Invalid Answers");
+                throw new CustomException(QuestionErrorEnum.InvalidAnswer);
             }
         }
     }

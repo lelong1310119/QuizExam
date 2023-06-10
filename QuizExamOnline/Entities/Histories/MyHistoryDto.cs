@@ -11,7 +11,6 @@ namespace QuizExamOnline.Entities.Histories
         public long CompleteTime { get; set; }
         public double QuestionRight { get; set; }
         public double ToTalScore { get; set; }
-
         public string NameExam { get; set; }
     }
 }
