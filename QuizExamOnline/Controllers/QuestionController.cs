@@ -82,7 +82,7 @@ namespace QuizExamOnline.Controllers
         }
 
         [HttpGet("getall_nopaging")]
-        public async Task<ActionResult<Paging<QuestionDto>>> GetAllNoPaging()
+        public async Task<ActionResult<IEnumerable<QuestionDto>>> GetAllNoPaging()
         {
             try
             {
@@ -110,7 +110,7 @@ namespace QuizExamOnline.Controllers
         }
 
         [HttpGet("search_nopaging")]
-        public async Task<ActionResult<Paging<QuestionDto>>> SearchNoPaging([FromQuery] string filter = "")
+        public async Task<ActionResult<IEnumerable<QuestionDto>>> SearchNoPaging([FromQuery] string filter = "")
         {
             try
             {

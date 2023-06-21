@@ -87,7 +87,7 @@ namespace QuizExamOnline.Controllers
 
         [AllowAnonymous]
         [HttpGet("getall_nopaging")]
-        public async Task<ActionResult<Paging<ExamDto>>> GetAllNopaging()
+        public async Task<ActionResult<IEnumerable<ExamDto>>> GetAllNopaging()
         {
             try
             {
@@ -114,6 +114,7 @@ namespace QuizExamOnline.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<ExamDto>> GetById(long id)
         {
@@ -134,6 +135,7 @@ namespace QuizExamOnline.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("getbycode/{code}")]
         public async Task<ActionResult<ExamDto>> GetByCode(string code)
         {

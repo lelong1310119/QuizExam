@@ -1,20 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj": {}
+    "D:\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj": {}
   },
   "projects": {
-    "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj": {
+    "D:\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj",
+        "projectUniqueName": "D:\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj",
         "projectName": "QuizExamOnline",
-        "projectPath": "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj",
-        "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "E:\\VS\\Test\\QuizExam\\QuizExamOnline\\obj\\",
+        "projectPath": "D:\\QuizExam\\QuizExamOnline\\QuizExamOnline.csproj",
+        "packagesPath": "C:\\Users\\lelon\\.nuget\\packages\\",
+        "outputPath": "D:\\QuizExam\\QuizExamOnline\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\lelon\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -22,6 +26,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\sdk\\7.0.304\\Sdks\\Microsoft.NET.Sdk.Web\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -104,7 +109,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.203\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.304\\RuntimeIdentifierGraph.json"
         }
       }
     }
